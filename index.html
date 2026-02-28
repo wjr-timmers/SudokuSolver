@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Solver - Python Powered</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧩 Sudoku Solver</h1>
+            <p class="subtitle">Powered by Python (running in your browser via Pyodide)</p>
+        </header>
+
+        <div class="status-bar" id="status-bar">
+            <span id="status-text">Loading Python environment...</span>
+            <div class="loader" id="loader"></div>
+        </div>
+
+        <main>
+            <div class="solver-section">
+                <div class="grid-container">
+                    <h2>Sudoku Grid</h2>
+                    <div class="sudoku-grid" id="sudoku-grid"></div>
+                    <div class="button-group">
+                        <button id="solve-btn" disabled>Solve</button>
+                        <button id="clear-btn">Clear</button>
+                        <button id="random-btn">Random Puzzle</button>
+                    </div>
+                    <div class="template-selector">
+                        <label for="template-select">Or choose a template:</label>
+                        <select id="template-select">
+                            <option value="">-- Select Template --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="results-container">
+                    <h2>Results</h2>
+                    <div id="results-panel" class="results-panel">
+                        <p class="placeholder">Solve a puzzle to see results</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="log-section">
+                <h2>📊 Performance Log</h2>
+                <div class="log-controls">
+                    <button id="clear-log-btn">Clear Log</button>
+                    <button id="export-log-btn">Export CSV</button>
+                </div>
+                <div class="table-wrapper">
+                    <table id="log-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Timestamp</th>
+                                <th>Template</th>
+                                <th>Empty Cells</th>
+                                <th>Solve Time (s)</th>
+                                <th>Guesses</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="log-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Built with Python & Pyodide | <a href="https://github.com/yourusername/ProjectSudoku" target="_blank">View on GitHub</a></p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

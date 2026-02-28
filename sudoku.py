@@ -445,7 +445,7 @@ if __name__ == "__main__":
 
     import templates as tpl
 
-    test_grid = tpl.test_grid39
+    test_grid = tpl.test_grid14
     start = time.time()
     counter = 0
     count_zeros = lambda grid: sum(row.count(0) for row in grid)
@@ -460,6 +460,9 @@ if __name__ == "__main__":
         print("Final solution:")
     else:
         print("How far we got:")
+
+    if total_guesses >2 :
+        print(f"Total guesses: {total_guesses}")
     print_grid(solution)
     print('---------')
     end = time.time()
