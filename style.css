@@ -13,6 +13,48 @@
     --font-sans: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* ── Light mode overrides ──────────────────────────── */
+html.light {
+    --bg:        #f0f2f5;
+    --bg-card:   #ffffff;
+    --bg-term:   #f7f8fa;
+    --blue:      #0070cc;
+    --blue-dim:  #0058a3;
+    --neon:      #0070cc;
+    --neon-pink: #d6336c;
+    --white:     #1a1a2e;
+    --grey:      #5a6070;
+    --border:    #d0d5dd;
+}
+
+html.light header h1 {
+    text-shadow: none;
+}
+
+html.light .sudoku-grid input.original {
+    text-shadow: none;
+}
+
+html.light .sudoku-grid input.solved {
+    text-shadow: none;
+}
+
+html.light .status-bar.ready {
+    box-shadow: none;
+}
+
+html.light .status-bar.error {
+    box-shadow: none;
+}
+
+html.light #solve-btn:hover:not(:disabled) {
+    box-shadow: none;
+}
+
+html.light #random-btn:hover {
+    box-shadow: none;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -24,12 +66,51 @@ body {
     background: var(--bg);
     min-height: 100vh;
     color: var(--white);
+    transition: background 0.3s ease, color 0.3s ease;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
+}
+
+/* Header row with theme toggle */
+.header-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+}
+
+.theme-toggle {
+    position: absolute;
+    right: 0;
+    background: var(--bg-term);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+    border-color: var(--neon);
+}
+
+/* Show/hide icons based on theme */
+.icon-light {
+    display: none;
+}
+
+html.light .icon-dark {
+    display: none;
+}
+
+html.light .icon-light {
+    display: inline;
 }
 
 header {

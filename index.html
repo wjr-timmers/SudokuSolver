@@ -10,7 +10,13 @@
 <body>
     <div class="container">
         <header>
-            <h1>🧩 Sudoku Solver</h1>
+            <div class="header-row">
+                <h1>🧩 Heuristic Sudoku Solver</h1>
+                <button id="theme-toggle" class="theme-toggle" title="Toggle light/dark mode">
+                    <span class="icon-dark">🌙</span>
+                    <span class="icon-light">☀️</span>
+                </button>
+            </div>
             <p class="subtitle">Powered by Python (running in your browser via Pyodide)</p>
         </header>
 
@@ -46,7 +52,7 @@
             </div>
 
             <div class="log-section">
-                <h2>📊 Performance Log</h2>
+                <h2>Logs</h2>
                 <div class="log-controls">
                     <button id="clear-log-btn">Clear Log</button>
                     <button id="export-log-btn">Export CSV</button>
