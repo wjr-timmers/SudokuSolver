@@ -51,6 +51,51 @@
                 </div>
             </div>
 
+            <div class="benchmark-section" id="benchmark-section">
+                <h2>Benchmark</h2>
+                <p class="bench-desc">Solve thousands of puzzles from a 10 000-puzzle dataset and see live performance stats.</p>
+                <div class="bench-controls">
+                    <div class="bench-input-group">
+                        <label for="bench-count">Puzzles:</label>
+                        <input type="number" id="bench-count" min="10" max="10000" step="10" value="1000">
+                    </div>
+                    <button id="bench-start-btn" disabled>▶ Start</button>
+                    <button id="bench-stop-btn" disabled>■ Stop</button>
+                </div>
+                <div class="bench-progress-wrap">
+                    <div class="bench-progress-bar">
+                        <div class="bench-progress-fill" id="bench-progress-fill"></div>
+                    </div>
+                    <span class="bench-progress-text" id="bench-progress-text">0 / 0</span>
+                </div>
+                <div class="bench-stats" id="bench-stats">
+                    <div class="bench-stat">
+                        <span class="bench-stat-label">Solved</span>
+                        <span class="bench-stat-value" id="bs-solved">—</span>
+                    </div>
+                    <div class="bench-stat">
+                        <span class="bench-stat-label">Failed</span>
+                        <span class="bench-stat-value" id="bs-failed">—</span>
+                    </div>
+                    <div class="bench-stat">
+                        <span class="bench-stat-label">Puzzles / sec</span>
+                        <span class="bench-stat-value" id="bs-rate">—</span>
+                    </div>
+                    <div class="bench-stat">
+                        <span class="bench-stat-label">Avg time</span>
+                        <span class="bench-stat-value" id="bs-avg">—</span>
+                    </div>
+                    <div class="bench-stat">
+                        <span class="bench-stat-label">Total time</span>
+                        <span class="bench-stat-value" id="bs-total">—</span>
+                    </div>
+                    <div class="bench-stat">
+                        <span class="bench-stat-label">Total guesses</span>
+                        <span class="bench-stat-value" id="bs-guesses">—</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="log-section">
                 <h2>Logs</h2>
                 <div class="log-controls">

@@ -505,6 +505,151 @@ footer a:hover {
     animation: pulse 0.6s ease-in-out infinite;
 }
 
+/* ── Benchmark section ─────────────────────────────── */
+.benchmark-section {
+    background: var(--bg-card);
+    padding: 24px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+
+.bench-desc {
+    color: var(--grey);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+}
+
+.bench-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.bench-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bench-input-group label {
+    font-family: var(--font-mono);
+    color: var(--grey);
+    font-size: 0.85rem;
+}
+
+.bench-input-group input {
+    width: 100px;
+    padding: 8px 10px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-term);
+    color: var(--white);
+    text-align: right;
+}
+
+.bench-input-group input:focus {
+    outline: none;
+    border-color: var(--blue);
+}
+
+#bench-start-btn {
+    background: transparent;
+    color: var(--neon);
+    border-color: var(--neon);
+}
+
+#bench-start-btn:hover:not(:disabled) {
+    background: var(--neon);
+    color: var(--bg);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+}
+
+#bench-stop-btn {
+    background: transparent;
+    color: var(--neon-pink);
+    border-color: var(--neon-pink);
+}
+
+#bench-stop-btn:hover:not(:disabled) {
+    background: var(--neon-pink);
+    color: var(--bg);
+    box-shadow: 0 0 20px rgba(255, 45, 123, 0.4);
+}
+
+html.light #bench-start-btn:hover:not(:disabled),
+html.light #bench-stop-btn:hover:not(:disabled) {
+    box-shadow: none;
+}
+
+.bench-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.bench-progress-bar {
+    flex: 1;
+    height: 10px;
+    background: var(--bg-term);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.bench-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--blue), var(--neon));
+    transition: width 0.15s ease;
+    border-radius: 5px;
+}
+
+.bench-progress-text {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--grey);
+    white-space: nowrap;
+    min-width: 90px;
+    text-align: right;
+}
+
+.bench-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.bench-stat {
+    background: var(--bg-term);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bench-stat-label {
+    font-family: var(--font-mono);
+    color: var(--grey);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.bench-stat-value {
+    font-family: var(--font-mono);
+    color: var(--neon);
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
     width: 8px;

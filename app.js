@@ -5,6 +5,11 @@ let templates = {};
 let logEntries = [];
 let logCounter = 0;
 
+// Benchmark state
+let benchPuzzles = null;   // loaded from puzzles.json
+let benchRunning = false;
+let benchAbort = false;
+
 // Theme management
 function initTheme() {
     const savedTheme = localStorage.getItem('sudokuTheme');
@@ -39,6 +44,7 @@ async function init() {
         
         updateStatus('Ready to solve!', 'ready');
         document.getElementById('solve-btn').disabled = false;
+        document.getElementById('bench-start-btn').disabled = false;
     } catch (error) {
         updateStatus('Error loading solver: ' + error.message, 'error');
         console.error(error);
@@ -227,6 +233,8 @@ function setupEventListeners() {
     document.getElementById('clear-log-btn').addEventListener('click', clearLog);
     document.getElementById('export-log-btn').addEventListener('click', exportLog);
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    document.getElementById('bench-start-btn').addEventListener('click', startBenchmark);
+    document.getElementById('bench-stop-btn').addEventListener('click', stopBenchmark);
 }
 
 function getGridValues() {
@@ -445,6 +453,106 @@ function loadLogFromStorage() {
         logEntries = parsed.entries || [];
         logCounter = parsed.counter || 0;
     }
+}
+
+// ─── Benchmark ───────────────────────────────────────
+async function loadBenchPuzzles() {
+    if (benchPuzzles) return benchPuzzles;
+    const resp = await fetch('puzzles.json');
+    benchPuzzles = await resp.json();
+    return benchPuzzles;
+}
+
+function setBenchStat(id, val) {
+    document.getElementById(id).textContent = val;
+}
+
+function resetBenchUI() {
+    document.getElementById('bench-progress-fill').style.width = '0%';
+    document.getElementById('bench-progress-text').textContent = '0 / 0';
+    ['bs-solved','bs-failed','bs-rate','bs-avg','bs-total','bs-guesses'].forEach(id => setBenchStat(id, '—'));
+}
+
+async function startBenchmark() {
+    if (benchRunning || !solverModule) return;
+
+    const count = Math.min(Math.max(parseInt(document.getElementById('bench-count').value) || 1000, 1), 10000);
+    document.getElementById('bench-count').value = count;
+
+    benchRunning = true;
+    benchAbort = false;
+    document.getElementById('bench-start-btn').disabled = true;
+    document.getElementById('bench-stop-btn').disabled = false;
+    resetBenchUI();
+
+    try {
+        updateStatus('Loading puzzles…', 'loading');
+        const all = await loadBenchPuzzles();
+
+        // Shuffle & pick
+        const shuffled = all.slice().sort(() => Math.random() - 0.5);
+        const selected = shuffled.slice(0, count);
+
+        updateStatus(`Benchmarking 0 / ${count}…`, 'loading');
+
+        let solved = 0, failed = 0, totalGuesses = 0;
+        const BATCH = 50;                // puzzles per yield
+        const wallStart = performance.now();
+
+        for (let i = 0; i < selected.length; i += BATCH) {
+            if (benchAbort) break;
+
+            const end = Math.min(i + BATCH, selected.length);
+            for (let j = i; j < end; j++) {
+                const res = JSON.parse(solverModule.ccall('solve_puzzle', 'string', ['string'], [selected[j].p]));
+                if (res.success) solved++; else failed++;
+                totalGuesses += res.guesses;
+            }
+
+            // Update UI between batches
+            const done = Math.min(end, selected.length);
+            const elapsed = (performance.now() - wallStart) / 1000;
+            const pct = (done / count * 100).toFixed(1);
+            document.getElementById('bench-progress-fill').style.width = pct + '%';
+            document.getElementById('bench-progress-text').textContent = `${done} / ${count}`;
+            setBenchStat('bs-solved', solved);
+            setBenchStat('bs-failed', failed);
+            setBenchStat('bs-rate', (done / elapsed).toFixed(0));
+            setBenchStat('bs-avg', (elapsed / done * 1000).toFixed(3) + ' ms');
+            setBenchStat('bs-total', elapsed.toFixed(2) + ' s');
+            setBenchStat('bs-guesses', totalGuesses);
+            updateStatus(`Benchmarking ${done} / ${count}…`, 'loading');
+
+            // Yield to render
+            await new Promise(r => setTimeout(r, 0));
+        }
+
+        const wallEnd = performance.now();
+        const wallSec = (wallEnd - wallStart) / 1000;
+        const total = solved + failed;
+
+        document.getElementById('bench-progress-fill').style.width = '100%';
+        document.getElementById('bench-progress-text').textContent = `${total} / ${count}`;
+        setBenchStat('bs-solved', solved);
+        setBenchStat('bs-failed', failed);
+        setBenchStat('bs-rate', (total / wallSec).toFixed(0));
+        setBenchStat('bs-avg', (wallSec / total * 1000).toFixed(3) + ' ms');
+        setBenchStat('bs-total', wallSec.toFixed(2) + ' s');
+        setBenchStat('bs-guesses', totalGuesses);
+        updateStatus(benchAbort ? 'Benchmark stopped' : 'Benchmark complete!', 'ready');
+
+    } catch (err) {
+        console.error(err);
+        updateStatus('Benchmark error: ' + err.message, 'error');
+    }
+
+    benchRunning = false;
+    document.getElementById('bench-start-btn').disabled = false;
+    document.getElementById('bench-stop-btn').disabled = true;
+}
+
+function stopBenchmark() {
+    benchAbort = true;
 }
 
 // Initialize on load
