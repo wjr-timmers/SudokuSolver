@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sudoku Solver - Python Powered</title>
+    <title>Sudoku Solver</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <script src="solver.js"></script>
 </head>
 <body>
     <div class="container">
@@ -17,11 +17,11 @@
                     <span class="icon-light">☀️</span>
                 </button>
             </div>
-            <p class="subtitle">Powered by Python (running in your browser via Pyodide)</p>
+            <p class="subtitle">Powered by C++ (running in your browser via WebAssembly)</p>
         </header>
 
         <div class="status-bar" id="status-bar">
-            <span id="status-text">Loading Python environment...</span>
+            <span id="status-text">Loading solver...</span>
             <div class="loader" id="loader"></div>
         </div>
 
@@ -78,7 +78,7 @@
         </main>
 
         <footer>
-            <p>Built with Python & Pyodide | <a href="https://github.com/yourusername/ProjectSudoku" target="_blank">View on GitHub</a></p>
+            <p>Built with C++ & WebAssembly | <a href="https://github.com/yourusername/ProjectSudoku" target="blank">View on GitHub</a></p>
         </footer>
     </div>
 

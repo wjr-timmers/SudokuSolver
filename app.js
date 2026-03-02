@@ -1,6 +1,6 @@
-// Sudoku Solver App - Using Pyodide to run Python in the browser
+// Sudoku Solver App - Using C++ WebAssembly solver
 
-let pyodide = null;
+let solverModule = null;
 let templates = {};
 let logEntries = [];
 let logCounter = 0;
@@ -32,16 +32,15 @@ async function init() {
     renderLog();
     
     try {
-        updateStatus('Loading Python environment...', 'loading');
-        pyodide = await loadPyodide();
+        updateStatus('Loading C++ solver...', 'loading');
+        solverModule = await createSolverModule();
         
-        updateStatus('Loading solver code...', 'loading');
-        await loadPythonCode();
+        loadTemplates();
         
         updateStatus('Ready to solve!', 'ready');
         document.getElementById('solve-btn').disabled = false;
     } catch (error) {
-        updateStatus('Error loading Python: ' + error.message, 'error');
+        updateStatus('Error loading solver: ' + error.message, 'error');
         console.error(error);
     }
     
@@ -105,339 +104,9 @@ function handleKeyNavigation(e) {
     }
 }
 
-async function loadPythonCode() {
-    // Load the sudoku solver code
-    const solverCode = `
-import time
-import itertools
-from collections import defaultdict
-import copy
 
-VALUES = [1,2,3,4,5,6,7,8,9]
-_BLOCK_COORDINATES_CACHE = None
-
-def get_all_block_coordinates():
-    global _BLOCK_COORDINATES_CACHE
-    if _BLOCK_COORDINATES_CACHE is not None:
-        return _BLOCK_COORDINATES_CACHE
-    
-    blocks = []
-    for block_row in range(3):
-        for block_col in range(3):
-            row_start = block_row * 3
-            col_start = block_col * 3
-            coords = [(i, j) for i in range(row_start, row_start + 3) 
-                             for j in range(col_start, col_start + 3)]
-            blocks.append(coords)
-    
-    _BLOCK_COORDINATES_CACHE = blocks
-    return blocks
-
-def get_block_coordinates(row_idx, col_idx):
-    block_row = row_idx // 3
-    block_col = col_idx // 3
-    block_idx = block_row * 3 + block_col
-    all_blocks = get_all_block_coordinates()
-    return all_blocks[block_idx]
-
-def check_block(grid, temp_options, cell_coordinate, verbose=False):
-    row_idx, col_idx = cell_coordinate
-    coordinates = get_block_coordinates(row_idx, col_idx).copy()
-    coordinates.remove((row_idx, col_idx))
-    for i, j in coordinates:
-        value = grid[i][j]
-        if value in temp_options:
-            temp_options.remove(value)
-    return temp_options
-
-def check_hidden(list_of_possibilities_in_block, option_grid, flag="None", verbose=False, hidden_quant=2):
-    occurences = {}
-    for v in VALUES:
-        occurences[v] = {'count': 0, 'coordinates': []}
-    
-    for coordinate, values in list_of_possibilities_in_block:
-        if values == [0]:
-            continue
-        else:
-            for value in values:
-                occurences[value]['count'] += 1
-                occurences[value]['coordinates'].append(coordinate)
-    
-    coord_groups = defaultdict(list)
-    for num, data in occurences.items():
-        if data['count'] == hidden_quant:
-            coord_key = tuple(data['coordinates'])
-            coord_groups[coord_key].append(num)
-    
-    for coords, numbers_hidden in coord_groups.items():
-        if len(numbers_hidden) == hidden_quant:
-            coords = list(coords)
-            for coordinate, values in list_of_possibilities_in_block:
-                if coordinate in coords:
-                    for v in values[:]:
-                        if v in numbers_hidden:
-                            continue
-                        else:
-                            values.remove(v)
-                            if v in option_grid[coordinate[0]][coordinate[1]]:
-                                option_grid[coordinate[0]][coordinate[1]].remove(v)
-    
-    return list_of_possibilities_in_block, option_grid
-
-def check_naked(list_of_possibilities_in_block, option_grid, flag="None", verbose=False, naked_quant=2):
-    naked_options = []
-    
-    if naked_quant == 1:
-        naked_options = [x for x in list_of_possibilities_in_block if len(x[1]) == 1]
-    else:
-        naked_quant_options = [x for x in list_of_possibilities_in_block if (len(x[1]) == naked_quant)]
-        for combo in itertools.combinations(naked_quant_options, naked_quant):
-            indices = [c[0] for c in combo]
-            values = [c[1] for c in combo]
-            union = set().union(*values)
-            if len(union) == naked_quant:
-                for i in range(naked_quant):
-                    naked_options.append((indices[i], values[i]))
-    
-    if len(naked_options) != 0:
-        naked_quant_coordinates = set(coord for coord, vals in naked_options)
-        for coordinate, values in list_of_possibilities_in_block:
-            if coordinate in naked_quant_coordinates:
-                continue
-            for naked_coord, naked_values in naked_options:
-                for naked_value in naked_values:
-                    if naked_value in values[:]:
-                        values.remove(naked_value)
-                        if naked_value in option_grid[coordinate[0]][coordinate[1]]:
-                            option_grid[coordinate[0]][coordinate[1]].remove(naked_value)
-    
-    return list_of_possibilities_in_block, option_grid
-
-def get_block_options(cell_coordinate, option_grid, verbose=False):
-    row_idx, col_idx = cell_coordinate
-    coordinates_block = get_block_coordinates(row_idx, col_idx)
-    coordinates_col = [(i, col_idx) for i in range(0, 9)]
-    coordinates_row = [(row_idx, j) for j in range(0, 9)]
-    
-    list_of_possibilities_block_total = []
-    list_of_possibitlies_row_total = []
-    list_of_possibitlies_col_total = []
-    
-    for i, j in coordinates_block:
-        list_of_possibilities_block_total.append(((i, j), option_grid[i][j]))
-    for i, j in coordinates_row:
-        list_of_possibitlies_row_total.append(((i, j), option_grid[i][j]))
-    for i, j in coordinates_col:
-        list_of_possibitlies_col_total.append(((i, j), option_grid[i][j]))
-    
-    return list_of_possibilities_block_total, list_of_possibitlies_row_total, list_of_possibitlies_col_total
-
-def check_if_fill_in(list_of_possibilities, cell_coordinate, option_grid, verbose=False):
-    list_of_possibilities = [item for item in list_of_possibilities if item[0] != cell_coordinate]
-    row_idx, col_idx = cell_coordinate
-    current_possibilities = option_grid[row_idx][col_idx]
-    
-    if not current_possibilities or current_possibilities == [0]:
-        return None, option_grid
-    
-    neighbor_values = set()
-    for coordinate, possibilities in list_of_possibilities:
-        if possibilities != [0] and len(possibilities) > 0:
-            neighbor_values.update(possibilities)
-    
-    unique_value = None
-    unique_count = 0
-    
-    for num in current_possibilities:
-        if num not in neighbor_values:
-            unique_count += 1
-            if unique_count > 1:
-                return None, option_grid
-            unique_value = num
-    
-    if unique_count == 1:
-        return unique_value, option_grid
-    else:
-        return None, option_grid
-
-def check_block_options(option_grid, cell_coordinate, verbose=False):
-    list_of_possibilities_block_total, list_of_possibitlies_row_total, list_of_possibitlies_col_total = get_block_options(cell_coordinate, option_grid, verbose=verbose)
-    
-    for i in range(1, 5):
-        list_of_possibilities_block_total, option_grid = check_naked(list_of_possibilities_block_total, option_grid, flag="block", verbose=verbose, naked_quant=i)
-        value_to_fill_in, option_grid = check_if_fill_in(list_of_possibilities_block_total, cell_coordinate, option_grid, verbose=False)
-        if value_to_fill_in is not None:
-            return value_to_fill_in, option_grid
-        
-        list_of_possibitlies_row_total, option_grid = check_naked(list_of_possibitlies_row_total, option_grid, flag="row", verbose=verbose, naked_quant=i)
-        value_to_fill_in, option_grid = check_if_fill_in(list_of_possibitlies_row_total, cell_coordinate, option_grid, verbose=False)
-        if value_to_fill_in is not None:
-            return value_to_fill_in, option_grid
-        
-        list_of_possibitlies_col_total, option_grid = check_naked(list_of_possibitlies_col_total, option_grid, flag="col", verbose=verbose, naked_quant=i)
-        value_to_fill_in, option_grid = check_if_fill_in(list_of_possibitlies_col_total, cell_coordinate, option_grid, verbose=False)
-        if value_to_fill_in is not None:
-            return value_to_fill_in, option_grid
-        
-        list_of_possibilities_block_total, option_grid = check_hidden(list_of_possibilities_block_total, option_grid, flag="block", verbose=verbose, hidden_quant=i)
-        value_to_fill_in, option_grid = check_if_fill_in(list_of_possibilities_block_total, cell_coordinate, option_grid, verbose=False)
-        if value_to_fill_in is not None:
-            return value_to_fill_in, option_grid
-        
-        list_of_possibitlies_row_total, option_grid = check_hidden(list_of_possibitlies_row_total, option_grid, flag="row", verbose=verbose, hidden_quant=i)
-        value_to_fill_in, option_grid = check_if_fill_in(list_of_possibitlies_row_total, cell_coordinate, option_grid, verbose=False)
-        if value_to_fill_in is not None:
-            return value_to_fill_in, option_grid
-        
-        list_of_possibitlies_col_total, option_grid = check_hidden(list_of_possibitlies_col_total, option_grid, flag="col", verbose=verbose, hidden_quant=i)
-        value_to_fill_in, option_grid = check_if_fill_in(list_of_possibitlies_col_total, cell_coordinate, option_grid, verbose=False)
-        if value_to_fill_in is not None:
-            return value_to_fill_in, option_grid
-    
-    return None, option_grid
-
-def get_grid_options(grid, verbose=False):
-    options_grid = [[[0] for i in range(9)] for j in range(9)]
-    
-    for row_idx in range(len(grid)):
-        for col_idx in range(len(grid[0])):
-            cell_value = grid[row_idx][col_idx]
-            possibilities = []
-            
-            if cell_value != 0:
-                options_grid[row_idx][col_idx] = [0]
-            else:
-                for v in VALUES:
-                    row = grid[row_idx]
-                    col = [row[col_idx] for row in grid]
-                    if (v not in row) and (v not in col):
-                        possibilities.append(v)
-                        possibilities = check_block(grid, possibilities, (row_idx, col_idx), verbose=verbose)
-                options_grid[row_idx][col_idx] = possibilities
-    
-    return options_grid
-
-def propagate_constraint(options_grid, row_idx, col_idx, fill_in_value):
-    for j in range(9):
-        if fill_in_value in options_grid[row_idx][j]:
-            options_grid[row_idx][j].remove(fill_in_value)
-    
-    for i in range(9):
-        if fill_in_value in options_grid[i][col_idx]:
-            options_grid[i][col_idx].remove(fill_in_value)
-    
-    block_row_start = (row_idx // 3) * 3
-    block_col_start = (col_idx // 3) * 3
-    for i in range(block_row_start, block_row_start + 3):
-        for j in range(block_col_start, block_col_start + 3):
-            if fill_in_value in options_grid[i][j]:
-                options_grid[i][j].remove(fill_in_value)
-    
-    return options_grid
-
-def check_for_contradiction(options_grid):
-    for row_idx in range(9):
-        for col_idx in range(9):
-            cell = options_grid[row_idx][col_idx]
-            if cell != [0] and len(cell) == 0:
-                return True
-    return False
-
-def solve_sudoku(grid, counter, total_to_fillin, verbose=False, recalculated_grid=None, guessed=False, guess_count=0):
-    if counter == total_to_fillin:
-        return grid, True, guess_count
-    
-    if recalculated_grid is None:
-        options_grid = get_grid_options(grid, verbose=verbose)
-    else:
-        options_grid = recalculated_grid
-    
-    if guessed and check_for_contradiction(options_grid):
-        return grid, False, guess_count
-    
-    fill_in_value = None
-    for row_idx in range(len(grid)):
-        for col_idx in range(len(grid[0])):
-            cell_value = options_grid[row_idx][col_idx]
-            
-            if cell_value == [0]:
-                pass
-            elif len(cell_value) == 1:
-                fill_in_value = cell_value[0]
-            else:
-                fill_in_value, options_grid = check_block_options(options_grid, (row_idx, col_idx), verbose=verbose)
-            
-            if fill_in_value is not None:
-                grid[row_idx][col_idx] = fill_in_value
-                options_grid[row_idx][col_idx] = [0]
-                options_grid = propagate_constraint(options_grid, row_idx, col_idx, fill_in_value)
-                counter += 1
-                return solve_sudoku(grid, counter, total_to_fillin, verbose=verbose, recalculated_grid=options_grid, guessed=False, guess_count=guess_count)
-    
-    best_cell = None
-    min_options = 10
-    for row_idx in range(9):
-        for col_idx in range(9):
-            cell_value = options_grid[row_idx][col_idx]
-            if cell_value != [0] and len(cell_value) >= 2 and len(cell_value) < min_options:
-                min_options = len(cell_value)
-                best_cell = (row_idx, col_idx, cell_value)
-    
-    if best_cell is None:
-        return grid, False, guess_count
-    
-    row_idx, col_idx, options = best_cell
-    
-    for guess in options:
-        grid_backup = copy.deepcopy(grid)
-        options_grid_backup = copy.deepcopy(options_grid)
-        
-        grid[row_idx][col_idx] = guess
-        options_grid[row_idx][col_idx] = [0]
-        options_grid = propagate_constraint(options_grid, row_idx, col_idx, guess)
-        guess_count += 1
-        
-        result_grid, success, guess_count = solve_sudoku(grid, counter + 1, total_to_fillin, verbose=verbose, recalculated_grid=options_grid, guessed=True, guess_count=guess_count)
-        
-        if success:
-            return result_grid, True, guess_count
-        else:
-            grid = grid_backup
-            options_grid = options_grid_backup
-    
-    return grid, False, guess_count
-
-def solve_from_flat(flat_grid):
-    """Solve sudoku from flat list of 81 numbers"""
-    grid = [flat_grid[i*9:(i+1)*9] for i in range(9)]
-    grid = [list(row) for row in grid]
-    
-    count_zeros = sum(row.count(0) for row in grid)
-    
-    start = time.time()
-    solution, success, guesses = solve_sudoku(grid, 0, count_zeros, verbose=False)
-    end = time.time()
-    
-    flat_solution = [cell for row in solution for cell in row]
-    
-    return {
-        'solution': flat_solution,
-        'success': success,
-        'time': round(end - start, 5),
-        'guesses': guesses,
-        'empty_cells': count_zeros
-    }
-`;
-
-    await pyodide.runPythonAsync(solverCode);
-    
-    // Load templates
-    await loadTemplates();
-}
-
-async function loadTemplates() {
-    const templateCode = `
-templates = {
+function loadTemplates() {
+    templates = {
    "test_grid1":[[0, 7, 0, 0, 0, 0, 0, 4, 3], [0, 4, 0, 0, 0, 9, 6, 1, 0], [8, 0, 0, 6, 3, 4, 9, 0, 0], [0, 9, 4, 0, 5, 2, 0, 0, 0], [3, 5, 8, 4, 6, 0, 0, 2, 0], [0, 0, 0, 8, 0, 0, 5, 3, 0], [0, 8, 0, 0, 7, 0, 0, 9, 1], [9, 0, 2, 1, 0, 0, 0, 0, 5], [0, 0, 7, 0, 4, 0, 8, 0, 2]],
     "test_grid2":[[3, 0, 1, 0, 8, 6, 5, 0, 4], [0, 4, 6, 5, 2, 1, 0, 7, 0], [5, 0, 0, 0, 0, 0, 0, 0, 1], [4, 0, 0, 8, 0, 0, 0, 0, 2], [0, 8, 0, 3, 4, 7, 9, 0, 0], [0, 0, 9, 0, 5, 0, 0, 3, 8], [0, 0, 4, 0, 9, 0, 2, 0, 0], [0, 0, 8, 7, 3, 4, 0, 9, 0], [0, 0, 7, 2, 0, 8, 1, 0, 3]],
     "test_grid3":[[0, 4, 8, 3, 0, 1, 5, 6, 0], [3, 6, 0, 0, 0, 8, 0, 9, 0], [9, 1, 0, 6, 7, 0, 0, 0, 3], [0, 2, 0, 0, 0, 0, 9, 3, 5], [5, 0, 9, 0, 1, 0, 2, 0, 0], [6, 7, 0, 0, 2, 0, 0, 1, 0], [0, 0, 4, 0, 0, 2, 1, 0, 7], [0, 9, 0, 1, 0, 0, 0, 0, 8], [1, 5, 0, 8, 3, 4, 0, 2, 9]],
@@ -538,15 +207,7 @@ templates = {
     "test_grid98":[[6, 0, 0, 0, 5, 3, 9, 0, 4], [0, 0, 0, 6, 0, 0, 0, 8, 2], [0, 9, 8, 7, 1, 2, 3, 0, 5], [7, 8, 0, 3, 0, 4, 5, 2, 0], [1, 0, 9, 2, 0, 0, 7, 0, 6], [5, 2, 0, 1, 7, 6, 8, 3, 9], [0, 0, 0, 4, 3, 1, 2, 5, 8], [8, 4, 0, 0, 0, 0, 6, 0, 0], [0, 0, 0, 0, 6, 8, 0, 0, 7]],
     "test_grid99":[[4, 0, 7, 8, 5, 1, 0, 3, 0], [0, 0, 0, 4, 7, 0, 8, 0, 5], [0, 0, 1, 0, 3, 2, 6, 4, 0], [0, 1, 8, 7, 2, 3, 4, 0, 0], [6, 7, 0, 0, 8, 9, 0, 2, 0], [9, 3, 0, 6, 0, 4, 7, 0, 8], [3, 4, 9, 2, 0, 8, 0, 0, 0], [0, 0, 0, 3, 0, 0, 2, 6, 9], [7, 2, 0, 0, 9, 0, 3, 8, 4]],
     "test_grid100":[[0, 0, 0, 0, 9, 0, 0, 1, 5], [0, 0, 0, 1, 0, 0, 8, 4, 0], [0, 5, 0, 3, 8, 0, 2, 0, 7], [0, 0, 0, 5, 3, 0, 0, 0, 0], [0, 0, 0, 6, 0, 2, 4, 3, 1], [0, 1, 2, 0, 0, 9, 5, 0, 0], [0, 2, 8, 0, 0, 3, 0, 0, 4], [0, 3, 7, 0, 0, 0, 0, 0, 2], [4, 0, 0, 0, 5, 0, 0, 8, 3]]
-
-    }
-
-import json
-json.dumps(templates)
-`;
-
-    const templatesJson = await pyodide.runPythonAsync(templateCode);
-    templates = JSON.parse(templatesJson);
+    };
     
     // Populate template selector
     const select = document.getElementById('template-select');
@@ -615,8 +276,8 @@ function loadRandomPuzzle() {
 }
 
 async function solvePuzzle() {
-    if (!pyodide) {
-        alert('Python environment not loaded yet!');
+    if (!solverModule) {
+        alert('Solver not loaded yet!');
         return;
     }
     
@@ -637,15 +298,13 @@ async function solvePuzzle() {
     updateStatus('Solving...', 'loading');
     
     try {
-        // Run solver in Python
-        pyodide.globals.set('input_grid', gridValues);
-        const resultJson = await pyodide.runPythonAsync(`
-import json
-result = solve_from_flat(list(input_grid))
-json.dumps(result)
-`);
-        
+        // Convert grid to 81-char string and run C++ solver via WebAssembly
+        const puzzleStr = gridValues.map(v => v || 0).join('');
+        const resultJson = solverModule.ccall('solve_puzzle', 'string', ['string'], [puzzleStr]);
         const result = JSON.parse(resultJson);
+        
+        // Convert solution string to array of numbers
+        result.solution = result.solution.split('').map(Number);
         
         document.querySelector('.grid-container').classList.remove('solving');
         

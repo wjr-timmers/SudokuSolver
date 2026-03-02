@@ -6,18 +6,23 @@ Code to solve a sudoku for fun.
 ## Project structure
 ```
 ProjectSudoku/
-├── cpp/              # C++ solver (high-performance)
+├── cpp/              # C++ solver (CLI, high-performance)
 │   ├── sudoku.cpp
 │   ├── Makefile
 │   └── benchmark.sh
+├── wasm/             # WebAssembly build (for browser)
+│   ├── solver_wasm.cpp
+│   └── Makefile
 ├── python/           # Python solver (original)
 │   ├── sudoku.py
 │   ├── templates.py
 │   ├── benchmark.py
 │   └── benchmark.sh
-├── app.js            # Web frontend (Pyodide)
+├── app.js            # Web frontend
 ├── index.html
 ├── style.css
+├── solver.js         # Emscripten glue (built from wasm/)
+├── solver.wasm       # Compiled solver (built from wasm/)
 ├── sudoku.csv        # 9M puzzle dataset (not in git)
 └── README.md
 ```
@@ -96,5 +101,36 @@ Benchmark against the CSV dataset:
 cd cpp
 sbatch benchmark.sh
 ```
+
+## Web app (WebAssembly)
+
+The web app runs the C++ solver compiled to WebAssembly — no server needed, works entirely in the browser via GitHub Pages.
+
+### Prerequisites
+Install the [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html):
+```bash
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+./emsdk install latest
+./emsdk activate latest
+source ./emsdk_env.sh
+```
+
+### Build
+```bash
+cd wasm
+make          # produces solver.js + solver.wasm in project root
+make clean    # remove built files
+```
+
+### Run locally
+Serve the project root with any HTTP server (Wasm requires it):
+```bash
+python3 -m http.server 8000
+# Open http://localhost:8000
+```
+
+### Deploy to GitHub Pages
+After building, commit `solver.js` and `solver.wasm` to the repo. GitHub Pages will serve them alongside `index.html`, `app.js`, and `style.css`.
 
 
