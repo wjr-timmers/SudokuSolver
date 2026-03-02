@@ -1,0 +1,9 @@
+rm -f sudoku sudoku_debug
+g++ -std=c++17 -O3 -march=native -flto -DNDEBUG -o sudoku sudoku.cpp -pthread -flto
+Starting C++ benchmark: 9000000 puzzles using 192 threads.
+Reading puzzles from sudoku.csv...
+Read 9000000 puzzles in 1.57s
+Using 192 workers
+Solved 9000000 puzzles (100.00%) in 0m 2.24s total
+Average 0.00005 seconds per puzzle
+Total guesses: 469229 (avg 0.05 per puzzle)
