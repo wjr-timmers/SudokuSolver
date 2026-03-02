@@ -5,3 +5,5 @@ __pycache__/
 sudoku.csv
 archive.zip
 logs/
+cpp/sudoku
+cpp/sudoku_debug

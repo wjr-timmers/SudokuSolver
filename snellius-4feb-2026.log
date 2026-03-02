@@ -1,8 +1,0 @@
-==> bench_19209261_4294967294.out <==
-Starting benchmark: Total 9000000 puzzles using 192 workers.
-Split 9000000 puzzles into 9000 chunks of 1000 each
-Using 192 workers
-Solved 9000000 puzzles (100.0%) in 10m 26.68s total
-Average 0.01225 seconds per puzzle
-Total guesses: 495906 (avg 0.06 per puzzle)
-
