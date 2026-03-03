@@ -3,7 +3,8 @@
 #SBATCH --output=logs/bench_%A_%a.out
 #SBATCH --error=logs/bench_%A_%a.err
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=62
+#SBATCH --cpus-per-task=64
+#SBATCH --partition=defq
 
 module load 2025
 module load GCCcore/14.2.0
@@ -15,7 +16,9 @@ cd $TMPDIR
 
 # Build optimized binary
 make clean
-make
+make pgo
+
+echo $hostname
 
 NUM_PUZZLES=9000000
 NUM_WORKERS=$SLURM_CPUS_PER_TASK
